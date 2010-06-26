@@ -27,21 +27,21 @@ my $tap_grammar = qr{
   <[MATCH=_body_line]>*
 
 <token: _body_line>
-  <comment>
-| <tap_line>
+  <MATCH=comment>
+| <MATCH=tap_line>
 
 # TAP-Line        = Test-Result / Bail-Out
 <token: tap_line> 
-  <test_result>
-| <bail_out>
+  <MATCH=test_result>
+| <MATCH=bail_out>
 
 # Version         = "TAP version" SP Version-Number EOL ; ie. "TAP version 13"
 <token: version> 
-  TAP version <.sp> <version_number> <.eol>
+  TAP version <.sp> <MATCH=version_number> <.eol>
 
 # Version-Number  = Positive-Integer
 <token: version_number> 
-  <positive_integer>
+  <MATCH=positive_integer>
 
 # Plan            = ( Plan-Simple / Plan-Todo / Plan-Skip-All ) EOL
 <token: plan> 

@@ -1,0 +1,3 @@
+* TestResult doesn't include optional leading - in description
+* Plan-Todo is missing SP before "todo" (I think)
+* Footer will never parse any comments because Body will get them instead

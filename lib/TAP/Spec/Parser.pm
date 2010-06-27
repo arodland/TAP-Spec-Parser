@@ -2,33 +2,30 @@ package TAP::Spec::Parser;
 use strict;
 use warnings;
 
-use Regexp::Grammars;
+use Regexp::Grammars 1.002;
+use TAP::Spec::TestSet ();
 
-my $tap_grammar = qr{
+my $tap_grammar = qr~
 # Main production
 <testset>
 
 # Definitions from first grammar section
 
 # Testset         = Header (Plan Body / Body Plan) Footer
-<token: testset> 
+<objtoken: TAP::Spec::TestSet=testset> 
   <header> (?: <plan> <body> | <body> <plan> ) <footer>
 
 # Header          = [Comments] [Version]
-<token: header> 
+<objtoken: TAP::Spec::Header=header> 
   <comments>? <version>?
 
 # Footer          = [Comments]
-<token: footer> 
+<objtoken: TAP::Spec::Footer=footer> 
   <comments>?
 
 # Body            = *(Comment / TAP-Line)
-<token: body> 
-  <[MATCH=_body_line]>*
-
-<token: _body_line>
-  <MATCH=comment>
-| <MATCH=tap_line>
+<objtoken: TAP::Spec::Body=body> 
+  (?: <[lines=comment]> | <[lines=tap_line]> )*
 
 # TAP-Line        = Test-Result / Bail-Out
 <token: tap_line> 
@@ -36,8 +33,8 @@ my $tap_grammar = qr{
 | <MATCH=bail_out>
 
 # Version         = "TAP version" SP Version-Number EOL ; ie. "TAP version 13"
-<token: version> 
-  TAP version <.sp> <MATCH=version_number> <.eol>
+<objtoken: TAP::Spec::Version=version> 
+  TAP <.sp> version <.sp> <version_number> <.eol>
 
 # Version-Number  = Positive-Integer
 <token: version_number> 
@@ -48,15 +45,19 @@ my $tap_grammar = qr{
   (?: <MATCH=plan_simple> | <MATCH=plan_todo> | <MATCH=plan_skip_all> ) <.eol>
 
 # Plan-Simple     = "1.." Number-Of-Tests
-<token: plan_simple>
+<objtoken: TAP::Spec::Plan::Simple=plan_simple>
   1.. <number_of_tests>
 
 # Plan-Todo       = Plan-Simple "todo" 1*(SP Test-Number) ";"  ; Obsolete
-<token: plan_todo>
-  <plan_simple> todo (?: <.sp> <[test_number]> )+ ;
+<objtoken: TAP::Spec::Plan::Todo=plan_todo>
+  <plan_simple> todo (?: <.sp> <[skipped_tests=test_number]> )+ ;
+  (?{ 
+    $MATCH{number_of_tests} = $MATCH{plan_simple}{number_of_tests};
+    delete $MATCH{plan_simple};
+  })
 
 # Plan-Skip-All   = "1..0" SP "skip" SP Reason
-<token: plan_skip_all>
+<objtoken: TAP::Spec::Plan::SkipAll=plan_skip_all>
   1..0 <.sp> skip <.sp> <reason>
 
 # Reason          = String
@@ -73,8 +74,8 @@ my $tap_grammar = qr{
 
 # Test-Result     = Status [SP Test-Number] [SP Description]
 #                    [SP "#" SP Directive [SP Reason]] EOL
-<token: test_result>
-  <status> (?: <.sp> <test_number> )? (?: <.sp> <description> )?
+<objtoken: TAP::Spec::TestResult=test_result>
+  <status> (?: <.sp> <number=test_number> )? (?: <.sp> <description> )?
   (?: 
     <.sp> \# <.sp> <directive> 
     (?: <.sp> <reason>)? 
@@ -95,16 +96,16 @@ my $tap_grammar = qr{
 | TODO
 
 # Bail-Out        = "Bail out!" [SP Reason] EOL
-<token: bail_out>
+<objtoken: TAP::Spec::BailOut=bail_out>
   Bail out! (?: <.sp> <reason>)? <.eol>
 
 # Comment         = "#" String EOL
-<token: comment>
-  \# <MATCH=string> <.eol>
+<objtoken: TAP::Spec::Comment=comment>
+  \# <text=string> <.eol>
 
 # Comments        = 1*Comment
 <token: comments>
-  <[comment]>+
+  <[MATCH=comment]>+
 
 # EOL              = LF / CRLF             ; Specific to the system producing the stream
 <token: eol>
@@ -126,12 +127,12 @@ my $tap_grammar = qr{
 # Because of BNF "SP" and because backslash-space in regex is ugly :)
 <token: sp>
   \x20
-}x;
+~x;
 
 sub parse_from_string {
   my ($self, $input) = @_;
   $input =~ /$tap_grammar/ or return;
-  return \%/;
+  return $/{testset};
 }
 
 sub parse_from_handle {

@@ -3,6 +3,11 @@ package TAP::Spec::TestSet;
 use Moose;
 use namespace::autoclean;
 
+use TAP::Spec::Body ();
+use TAP::Spec::Plan ();
+use TAP::Spec::Header ();
+use TAP::Spec::Footer ();
+
 has 'body' => (
   is => 'rw',
   isa => 'TAP::Spec::Body',
@@ -11,6 +16,12 @@ has 'body' => (
     tests => 'tests',
     body_comments => 'comments',
   },
+  required => 1,
+);
+
+has 'plan' => (
+  is => 'rw',
+  isa => 'TAP::Spec::Plan',
 );
 
 has 'header' => (
@@ -20,6 +31,7 @@ has 'header' => (
     header_comments => 'comments',
     version => 'version',
   },
+  required => 1,
 );
 
 has 'footer' => (
@@ -28,6 +40,15 @@ has 'footer' => (
   handles => {
     footer_comments => 'comments',
   },
+  required => 1,
 );
 
+sub as_tap {
+  my ($self) = @_;
+
+  return $self->header->as_tap() . $self->body->as_tap() . $self->footer->as_tap();
+}
+
+__PACKAGE__->meta->make_immutable;
+1;
 1;

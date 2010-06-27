@@ -1,0 +1,6 @@
+* Fully implement skipping "junk" lines.
+* (Optionally?) remove the '' key (which stores the entire matched text) from 
+  result hashes.
+* Convince Regexp::Grammars to call object constructors instead of just
+  blessing hashes (to play better with Moose)
+* Investigate segfaults in global destruction after parsing.

@@ -46,7 +46,10 @@ has 'footer' => (
 sub as_tap {
   my ($self) = @_;
 
-  return $self->header->as_tap() . $self->body->as_tap() . $self->footer->as_tap();
+  return $self->plan->as_tap()   .
+         $self->header->as_tap() .
+         $self->body->as_tap()   .
+         $self->footer->as_tap();
 }
 
 __PACKAGE__->meta->make_immutable;

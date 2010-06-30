@@ -24,12 +24,27 @@ has 'plan' => (
   isa => 'TAP::Spec::Plan',
 );
 
+has version => (
+    is          => 'rw',
+    isa         => 'Int',
+    lazy        => 1,
+    default     => sub {
+        my $self = shift;
+
+        if( my $v = $self->header->version ) {
+            return $v->version_number;
+        }
+        else {
+            return 12;
+        }
+    }
+);
+
 has 'header' => (
   is => 'rw',
   isa => 'TAP::Spec::Header',
   handles => { 
     header_comments => 'comments',
-    version => 'version',
   },
   required => 1,
 );
@@ -52,6 +67,24 @@ sub as_tap {
          $self->footer->as_tap();
 }
 
+sub passed {
+    my $self = shift;
+
+    return '' unless $self->plan;
+    my $expected = $self->plan->number_of_tests;
+
+    my $lines = $self->body->lines;
+    return '' unless @$lines == $expected;
+
+    my $count = 1;
+    for my $line (@$lines) {
+        return '' unless $line->passed;
+        return '' unless $line->number == $count++;
+    }
+
+    return 1;
+}
+
 __PACKAGE__->meta->make_immutable;
 1;
-1;
+

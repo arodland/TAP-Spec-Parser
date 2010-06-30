@@ -37,6 +37,14 @@ has 'reason' => (
   predicate => 'has_reason',
 );
 
+sub passed {
+    my $self = shift;
+
+    return 1 if $self->status eq 'ok';
+    return 1 if $self->directive and $self->directive eq 'TODO';
+    return '';
+}
+
 sub as_tap {
   my ($self) = @_;
 

@@ -13,3 +13,4 @@ nytprof*
 .DS_Store
 MYMETA.yml
 *.o
+TAP-Spec-Parser-*

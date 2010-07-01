@@ -120,13 +120,13 @@ sub passed {
     return '' unless $self->plan;
     my $expected = $self->plan->number_of_tests;
 
-    my $lines = $self->body->lines;
-    return '' unless @$lines == $expected;
+    my @tests = $self->tests;
+    return '' unless @tests == $expected;
 
     my $count = 1;
-    for my $line (@$lines) {
-        return '' unless $line->passed;
-        return '' unless $line->number == $count++;
+    for my $test (@tests) {
+        return '' unless $test->passed;
+        return '' unless $test->number == $count++;
     }
 
     return 1;

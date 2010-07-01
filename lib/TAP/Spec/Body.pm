@@ -21,6 +21,19 @@ has 'lines' => (
   predicate => 'has_lines',
 );
 
+=method $body->tests
+
+Returns a list of the test results from the C<lines>.
+
+=cut
+
+sub tests {
+  my ($self) = @_;
+
+  return () unless $self->has_lines;
+  return grep $_->isa('TAP::Spec::TestResult'), @{ $self->lines };
+}
+
 =method $body->as_tap
 
 TAP representation.

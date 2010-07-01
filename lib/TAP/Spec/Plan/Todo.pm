@@ -4,11 +4,24 @@ use Moose;
 use namespace::autoclean;
 extends 'TAP::Spec::Plan::Simple';
 
+=attr skipped_tests
+
+B<Required>: An arrayref of the test numbers that should be considered
+TODO.
+
+=cut
+
 has 'skipped_tests' => (
   is => 'rw',
   isa => 'ArrayRef',
   required => 1,
 );
+
+=method $plan->as_tap
+
+TAP Representation.
+
+=cut
 
 around 'as_tap' => sub {
   my ($self, $inner) = @_;
@@ -21,4 +34,3 @@ around 'as_tap' => sub {
 };
 
 __PACKAGE__->meta->make_immutable;
-1;

@@ -6,17 +6,35 @@ use namespace::autoclean;
 use TAP::Spec::Comment ();
 use TAP::Spec::Version ();
 
+=attr comments
+
+B<Optional>: An arrayref of header comments
+
+=cut
+
 has 'comments' => (
   is => 'rw',
   isa => 'ArrayRef',
   predicate => 'has_comments',
 );
 
+=attr version
+
+B<Optional>: The TAP version
+
+=cut
+
 has 'version' => (
   is => 'rw',
   isa => 'TAP::Spec::Version',
   predicate => 'has_version',
 );
+
+=method $header->as_tap
+
+TAP representation.
+
+=cut
 
 sub as_tap {
   my ($self) = @_;

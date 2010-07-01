@@ -130,11 +130,26 @@ my $tap_grammar = qr~
   \x20
 ~x;
 
+=method $parser->parse_from_string($input)
+
+Return a parse the given string, and return a L<TAP::Spec::TestSet> if it can
+be parsed as TAP, or C<undef> otherwise.
+
+=cut
+
 sub parse_from_string {
   my ($self, $input) = @_;
   $input =~ /$tap_grammar/ or return;
   return $/{testset};
 }
+
+=method $parser->parse_from_handle($fh)
+
+As C<parse_from_string>, but read from a filehandle instead. This isn't
+a streaming interface, just a convenience method that slurps the handle
+and calls C<parse_from_string>.
+
+=cut
 
 sub parse_from_handle {
   my ($self, $fh) = @_;

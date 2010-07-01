@@ -8,6 +8,14 @@ use TAP::Spec::Plan ();
 use TAP::Spec::Header ();
 use TAP::Spec::Footer ();
 
+=attr body
+
+B<Required>: The testset body (contains the test results, as well as any
+bail-outs, and any comment lines outside of the headers). Is a 
+L<TAP::Spec::Body>.
+
+=cut
+
 has 'body' => (
   is => 'rw',
   isa => 'TAP::Spec::Body',
@@ -19,10 +27,23 @@ has 'body' => (
   required => 1,
 );
 
+=attr plan
+
+B<Required>: The test plan. Is a L<TAP::Spec::Plan>.
+
+=cut
+
 has 'plan' => (
   is => 'rw',
   isa => 'TAP::Spec::Plan',
 );
+
+=attr version
+
+B<Computed>: The TAP spec version. If a version is present in the header,
+it is used, otherwise version 12 is assumed.
+
+=cut
 
 has version => (
     is          => 'rw',
@@ -40,6 +61,12 @@ has version => (
     }
 );
 
+=attr header
+
+B<Required>: The TAP header. Is a L<TAP::Spec::Header>.
+
+=cut
+
 has 'header' => (
   is => 'rw',
   isa => 'TAP::Spec::Header',
@@ -48,6 +75,12 @@ has 'header' => (
   },
   required => 1,
 );
+
+=attr footer
+
+B<Required>: The TAP footer. Is a L<TAP::Spec::Footer>.
+
+=cut
 
 has 'footer' => (
   is => 'rw',
@@ -58,6 +91,12 @@ has 'footer' => (
   required => 1,
 );
 
+=method $testset->as_tap
+
+TAP representation.
+
+=cut
+
 sub as_tap {
   my ($self) = @_;
 
@@ -66,6 +105,14 @@ sub as_tap {
          $self->body->as_tap()   .
          $self->footer->as_tap();
 }
+
+=method $testset->passed
+
+Whether the testset is considered to have passed. A testset passes if a plan
+was found, and the number of tests executed matches the number of tests planned,
+and all tests are passing.
+
+=cut
 
 sub passed {
     my $self = shift;
@@ -86,5 +133,3 @@ sub passed {
 }
 
 __PACKAGE__->meta->make_immutable;
-1;
-

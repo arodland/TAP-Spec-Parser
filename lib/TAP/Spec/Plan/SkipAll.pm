@@ -4,13 +4,31 @@ use Moose;
 use namespace::autoclean;
 extends 'TAP::Spec::Plan';
 
+=attr reason
+
+B<Required>: The reason for skipping all tests.
+
+=cut
+
 has 'reason' => ( 
   is => 'rw',
   isa => 'Str',
   required => 1,
 );
 
+=method $plan->number_of_tests
+
+Returns 0 (all tests were skipped)
+
+=cut
+
 sub number_of_tests { 0 }
+
+=method $plan->as_tap
+
+TAP representation.
+
+=cut
 
 sub as_tap {
   my ($self) = @_;

@@ -4,11 +4,23 @@ use Moose;
 use namespace::autoclean;
 extends 'TAP::Spec::Plan';
 
+=attr number_of_tests
+
+B<Required>: The number of tests planned
+
+=cut
+
 has 'number_of_tests' => (
   is => 'rw',
   isa => 'Num',
   required => 1,
 );
+
+=method $plan->as_tap
+
+TAP representation.
+
+=cut
 
 sub as_tap {
   my ($self) = @_;

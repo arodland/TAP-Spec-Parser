@@ -7,11 +7,25 @@ use TAP::Spec::Comment ();
 use TAP::Spec::TestResult ();
 use TAP::Spec::BailOut ();
 
+=attr lines
+
+B<Optional>: The lines (TestResults, Comments, BailOuts) of the body.
+TODO: remove the predicate and make it default => [] once Regexp::Grammars
+calls constructors.
+
+=cut
+
 has 'lines' => (
   is => 'rw',
   isa => 'ArrayRef',
   predicate => 'has_lines',
 );
+
+=method $body->as_tap
+
+TAP representation.
+
+=cut
 
 sub as_tap {
   my ($self) = @_;
@@ -27,4 +41,3 @@ sub as_tap {
 }
 
 __PACKAGE__->meta->make_immutable;
-1;

@@ -3,11 +3,23 @@ package TAP::Spec::BailOut;
 use Moose;
 use namespace::autoclean;
 
+=attr reason
+
+B<Optional>: The reason why testing was ended.
+
+=cut
+
 has 'reason' => (
   is => 'rw',
   isa => 'Str',
   predicate => 'has_reason',
 );
+
+=method $bail_out->as_tap
+
+TAP representation.
+
+=cut
 
 sub as_tap {
   my ($self) = @_;
@@ -20,4 +32,3 @@ sub as_tap {
 }
 
 __PACKAGE__->meta->make_immutable;
-1;

@@ -5,11 +5,23 @@ use namespace::autoclean;
 
 use TAP::Spec::Comment ();
 
+=attr comments
+
+B<Optional>: An arrayref of footer comments
+
+=cut
+
 has 'comments' => (
   is => 'rw',
   isa => 'ArrayRef',
   predicate => 'has_comments',
 );
+
+=method $footer->as_tap
+
+TAP representation.
+
+=cut
 
 sub as_tap {
   my ($self) = @_;
@@ -24,4 +36,3 @@ sub as_tap {
 }
 
 __PACKAGE__->meta->make_immutable;
-1;

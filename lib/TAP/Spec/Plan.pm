@@ -1,5 +1,5 @@
 package TAP::Spec::Plan;
-
+# ABSTRACT: A TAP test plan
 use Moose;
 use namespace::autoclean;
 

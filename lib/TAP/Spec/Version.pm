@@ -1,4 +1,5 @@
 package TAP::Spec::Version;
+# ABSTRACT: A TAP version number specification
 use Moose;
 use namespace::autoclean;
 

@@ -1,5 +1,5 @@
 package TAP::Spec::Header;
-
+# ABSTRACT: Information at the beginning of a TAP stream
 use Moose;
 use namespace::autoclean;
 

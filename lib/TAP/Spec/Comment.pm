@@ -1,4 +1,5 @@
 package TAP::Spec::Comment;
+# ABSTRACT: A comment in a TAP stream
 use Moose;
 use namespace::autoclean;
 

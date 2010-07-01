@@ -1,5 +1,5 @@
 package TAP::Spec::Footer;
-
+# ABSTRACT: Trailing information in a TAP stream
 use Moose;
 use namespace::autoclean;
 

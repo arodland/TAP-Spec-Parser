@@ -1,4 +1,5 @@
 package TAP::Spec::BailOut;
+# ABSTRACT: A TAP Bail Out! line
 use Moose;
 use namespace::autoclean;
 

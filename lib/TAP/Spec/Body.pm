@@ -1,4 +1,5 @@
 package TAP::Spec::Body;
+# ABSTRACT: The main body of a TAP testset
 use Moose;
 use namespace::autoclean;
 

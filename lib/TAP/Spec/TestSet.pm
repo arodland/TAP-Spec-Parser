@@ -1,5 +1,5 @@
 package TAP::Spec::TestSet;
-
+# ABSTRACT: A set of related TAP tests
 use Moose;
 use namespace::autoclean;
 

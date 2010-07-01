@@ -1,4 +1,5 @@
 package TAP::Spec::TestResult;
+# ABSTRACT: The results of a single test
 use Moose;
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;

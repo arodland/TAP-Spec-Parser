@@ -1,4 +1,5 @@
 package TAP::Spec::Parser;
+# ABSTRACT: Reference implementation of the TAP specification
 use strict;
 use warnings;
 

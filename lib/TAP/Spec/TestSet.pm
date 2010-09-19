@@ -1,6 +1,6 @@
 package TAP::Spec::TestSet;
 # ABSTRACT: A set of related TAP tests
-use Moose;
+use Mouse;
 use namespace::autoclean;
 
 use TAP::Spec::Body ();
@@ -47,8 +47,7 @@ it is used, otherwise version 12 is assumed.
 
 has version => (
     is          => 'rw',
-#    isa         => 'Int',
-    isa         => 'Num',
+    isa         => 'Int',
     lazy        => 1,
     default     => sub {
         my $self = shift;

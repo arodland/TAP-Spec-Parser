@@ -1,6 +1,6 @@
 package TAP::Spec::JunkLine;
 # ABSTRACT: A comment in a TAP stream
-use Moose;
+use Mouse;
 use namespace::autoclean;
 
 =attr text

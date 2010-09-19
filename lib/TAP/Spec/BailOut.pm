@@ -1,6 +1,6 @@
 package TAP::Spec::BailOut;
 # ABSTRACT: A TAP Bail Out! line
-use Moose;
+use Mouse;
 use namespace::autoclean;
 
 =attr reason

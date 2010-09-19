@@ -1,6 +1,6 @@
 package TAP::Spec::Header;
 # ABSTRACT: Information at the beginning of a TAP stream
-use Moose;
+use Mouse;
 use namespace::autoclean;
 
 use TAP::Spec::Comment ();
@@ -82,4 +82,3 @@ sub as_tap {
 }
 
 __PACKAGE__->meta->make_immutable;
-1;

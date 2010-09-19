@@ -1,13 +1,12 @@
 package TAP::Spec::TestResult;
 # ABSTRACT: The results of a single test
-use Moose;
-use Moose::Util::TypeConstraints;
+use Mouse;
+use Mouse::Util::TypeConstraints;
 use namespace::autoclean;
 
 enum 'TAP::Spec::TestStatus' => ('ok', 'not ok');
 enum 'TAP::Spec::Directive' => qw(SKIP TODO);
-#subtype 'TAP::Spec::TestNumber' => as 'Int', where { $_ > 0 };
-subtype 'TAP::Spec::TestNumber' => as 'Num', where { $_ > 0 };
+subtype 'TAP::Spec::TestNumber' => as 'Int', where { $_ > 0 };
 
 =attr status
 

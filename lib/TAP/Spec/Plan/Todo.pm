@@ -1,6 +1,6 @@
 package TAP::Spec::Plan::Todo;
 # ABSTRACT: A legacy TAP plan indicating TODO tests
-use Moose;
+use Mouse;
 use namespace::autoclean;
 extends 'TAP::Spec::Plan::Simple';
 

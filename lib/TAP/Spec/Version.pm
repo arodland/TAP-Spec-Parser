@@ -1,6 +1,6 @@
 package TAP::Spec::Version;
 # ABSTRACT: A TAP version number specification
-use Moose;
+use Mouse;
 use namespace::autoclean;
 
 =attr version_number
@@ -11,8 +11,7 @@ B<Required>: The TAP version number (integer).
 
 has 'version_number' => (
   is => 'rw',
-#  isa => 'Int',
-  isa => 'Num',
+  isa => 'Int',
   required => 1,
 );
 

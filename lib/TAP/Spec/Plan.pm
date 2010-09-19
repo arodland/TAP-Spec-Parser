@@ -1,6 +1,6 @@
 package TAP::Spec::Plan;
 # ABSTRACT: A TAP test plan
-use Moose;
+use Mouse;
 use namespace::autoclean;
 
 use TAP::Spec::Plan::Simple ();

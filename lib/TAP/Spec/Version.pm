@@ -11,7 +11,8 @@ B<Required>: The TAP version number (integer).
 
 has 'version_number' => (
   is => 'rw',
-  isa => 'Int',
+#  isa => 'Int',
+  isa => 'Num',
   required => 1,
 );
 

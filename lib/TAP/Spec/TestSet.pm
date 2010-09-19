@@ -47,7 +47,8 @@ it is used, otherwise version 12 is assumed.
 
 has version => (
     is          => 'rw',
-    isa         => 'Int',
+#    isa         => 'Int',
+    isa         => 'Num',
     lazy        => 1,
     default     => sub {
         my $self = shift;

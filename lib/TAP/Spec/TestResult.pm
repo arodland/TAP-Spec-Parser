@@ -6,7 +6,8 @@ use namespace::autoclean;
 
 enum 'TAP::Spec::TestStatus' => ('ok', 'not ok');
 enum 'TAP::Spec::Directive' => qw(SKIP TODO);
-subtype 'TAP::Spec::TestNumber' => as 'Int', where { $_ > 0 };
+#subtype 'TAP::Spec::TestNumber' => as 'Int', where { $_ > 0 };
+subtype 'TAP::Spec::TestNumber' => as 'Num', where { $_ > 0 };
 
 =attr status
 

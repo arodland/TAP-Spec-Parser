@@ -3,7 +3,7 @@ package TAP::Spec::Parser;
 use strict;
 use warnings;
 
-use Regexp::Grammars 1.002;
+use Regexp::Grammars 1.008;
 use TAP::Spec::TestSet ();
 
 my $tap_grammar = qr~

@@ -18,15 +18,19 @@ my $tap_grammar = qr~
 
 # Header          = [Comments] [Version]
 <objtoken: TAP::Spec::Header=header> 
+  <[leading_junk=junk_line]>*?
   <comments>? <version>?
+  <[trailing_junk=junk_line]>*?
 
 # Footer          = [Comments]
 <objtoken: TAP::Spec::Footer=footer> 
+  <[leading_junk=junk_line]>*?
   <comments>?
+  <[trailing_junk=junk_line]>*?
 
 # Body            = *(Comment / TAP-Line)
 <objtoken: TAP::Spec::Body=body> 
-  (?: <[lines=comment]> | <[lines=tap_line]> )*
+  (?: <[lines=comment]> | <[lines=tap_line]> | <[lines=junk_line]> )*
 
 # TAP-Line        = Test-Result / Bail-Out
 <token: tap_line> 
@@ -81,6 +85,9 @@ my $tap_grammar = qr~
     <.sp> \# <.sp> <directive> 
     (?: <.sp> <reason>)? 
   )? <.eol>
+
+<objtoken: TAP::Spec::JunkLine=junk_line>
+  <text=(.*?)> <.eol>
 
 # Status          = "ok" / "not ok"       ; Whether the test succeeded or failed
 <token: status>

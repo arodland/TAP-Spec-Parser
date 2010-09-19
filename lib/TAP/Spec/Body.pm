@@ -4,6 +4,7 @@ use Moose;
 use namespace::autoclean;
 
 use TAP::Spec::Comment ();
+use TAP::Spec::JunkLine ();
 use TAP::Spec::TestResult ();
 use TAP::Spec::BailOut ();
 

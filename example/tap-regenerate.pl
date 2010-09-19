@@ -3,7 +3,6 @@
 use strict;
 use warnings;
 
-use lib 'lib';
 use TAP::Spec::Parser;
 use Data::Dumper;
 

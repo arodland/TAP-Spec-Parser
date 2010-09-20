@@ -79,7 +79,7 @@ sub passed {
     my $self = shift;
 
     return 1 if $self->status eq 'ok';
-    return 1 if $self->directive and $self->directive eq 'TODO';
+    return 1 if $self->has_directive and $self->directive eq 'TODO';
     return '';
 }
 

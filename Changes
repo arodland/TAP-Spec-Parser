@@ -1,0 +1,4 @@
+{{$NEXT}}
+  * Initial release to CPAN
+  * Handles many real-world test files with minimal segfaults.
+  * Example scripts, but not much in the way of tests.

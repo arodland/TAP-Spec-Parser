@@ -39,7 +39,7 @@ my $tap_grammar = qr~
 
 # Version         = "TAP version" SP Version-Number EOL ; ie. "TAP version 13"
 <objtoken: TAP::Spec::Version=version> 
-  TAP <.sp> version <.sp> <version_number> <.eol>
+  (?i:TAP <.sp> version) <.sp> <version_number> <.eol>
 
 # Version-Number  = Positive-Integer
 <token: version_number> 
@@ -55,7 +55,7 @@ my $tap_grammar = qr~
 
 # Plan-Todo       = Plan-Simple "todo" 1*(SP Test-Number) ";"  ; Obsolete
 <objtoken: TAP::Spec::Plan::Todo=plan_todo>
-  <plan_simple> todo (?: <.sp> <[skipped_tests=test_number]> )+ ;
+  <plan_simple> (?i:todo) (?: <.sp> <[skipped_tests=test_number]> )+ ;
   (?{ 
     $MATCH{number_of_tests} = $MATCH{plan_simple}{number_of_tests};
     delete $MATCH{plan_simple};
@@ -63,7 +63,7 @@ my $tap_grammar = qr~
 
 # Plan-Skip-All   = "1..0" SP "skip" SP Reason
 <objtoken: TAP::Spec::Plan::SkipAll=plan_skip_all>
-  1..0 <.sp> skip <.sp> <reason>
+  1..0 <.sp> (?i:skip) <.sp> <reason>
 
 # Reason          = String
 <token: reason>
@@ -91,8 +91,8 @@ my $tap_grammar = qr~
 
 # Status          = "ok" / "not ok"       ; Whether the test succeeded or failed
 <token: status>
-  ok
-| not\ ok
+  (?i:ok) <MATCH=(?{ "ok" })>
+| (?i:not\ ok) <MATCH=(?{ "not ok" })>
 
 # Description     = Safe-String           ; A description of this test.
 <token: description>
@@ -100,12 +100,12 @@ my $tap_grammar = qr~
 
 # Directive       = "SKIP" / "TODO"
 <token: directive>
-  SKIP
-| TODO
+  (?i:SKIP) <MATCH=(?{ "SKIP" })>
+| (?i:TODO) <MATCH=(?{ "TODO" })>
 
 # Bail-Out        = "Bail out!" [SP Reason] EOL
 <objtoken: TAP::Spec::BailOut=bail_out>
-  Bail out! (?: <.sp> <reason>)? <.eol>
+  (?i:Bail out!) (?: <.sp> <reason>)? <.eol>
 
 # Comment         = "#" String EOL
 <objtoken: TAP::Spec::Comment=comment>

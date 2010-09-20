@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.02      2010-09-19 22:41:54 CST6CDT
   * Initial release to CPAN
   * Handles many real-world test files with minimal segfaults.
   * Example scripts, but not much in the way of tests.

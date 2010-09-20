@@ -3,10 +3,12 @@ package TAP::Spec::Parser;
 use strict;
 use warnings;
 
-use Regexp::Grammars 1.008;
 use TAP::Spec::TestSet ();
 
-my $tap_grammar = qr~
+my $tap_grammar = do {
+use Regexp::Grammars 1.008;
+
+qr~
 # Main production
 <testset>
 
@@ -136,6 +138,7 @@ my $tap_grammar = qr~
 <token: sp>
   \x20
 ~x;
+};
 
 =method $parser->parse_from_string($input)
 

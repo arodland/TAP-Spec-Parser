@@ -13,5 +13,3 @@ want:
     - number:   1
       status:   ok
       passed:   true
-...
-  

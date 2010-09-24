@@ -1,4 +1,5 @@
 {{$NEXT}}
+  * That was a failure. Require YAML::XS for tests instead.
 
 0.03      2010-09-20 20:57:31 CST6CDT
   * Fix spectests to work if the user has YAML.pm

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use TAP::Spec::Parser;
-use YAML::Any qw(LoadFile);
+use YAML::XS qw(LoadFile);
 use Path::Class;
 use Carp;
 

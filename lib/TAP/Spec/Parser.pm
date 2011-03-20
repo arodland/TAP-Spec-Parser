@@ -73,6 +73,13 @@ sub lookahead
   return $success;
 }
 
+# Match *any* line of input and save it in a junkline object.
+method parse_junk_line {
+  my $text = $self->expect(qr/[^\n]*/);
+  $self->_eol;
+  TAP::Spec::JunkLine->new(text => $text);
+}
+
 method junk_until(@code) {
   $self->seq_of(
     sub {
@@ -120,6 +127,17 @@ method parse_testset {
 # Header          = [Comments] [Version]
 method parse_header {
   my %tmp;
+  # This is very twisty, but incidental to the way the grammar works. It's all
+  # in the fact that the spec says "All unparsable lines must be ignored by TAP
+  # consumers". For the sake of completeness we're not totally ignoring but
+  # capturing them, with the "parse_junk_line" method. But right here, at the
+  # very beginning of everything, there are a lot of options -- the first line
+  # of a TAP stream might be a comment, a version line, a plan, the first test
+  # result, or complete junk -- in which case the next line might be any of the
+  # above. We need to move past junk if it's present, but we need to give any
+  # valid input a change to match first, which [maybe_attr_]junk_until does
+  # using lookaheads. So at each turn we give it a list of things *not* to
+  # reject right now.
   $self->maybe_attr_junk_until(\%tmp, 'leading_junk',
     sub { $self->parse_comment },
     sub { $self->parse_version },
@@ -156,7 +174,7 @@ method parse_footer {
     sub { $self->parse_comments }
   );
   $self->maybe_attr_junk_until(\%tmp, 'trailing_junk',
-    # nothing
+    # nothing - anything from here to EOF is junk.
   );
   TAP::Spec::Footer->new(%tmp);
 }
@@ -292,12 +310,6 @@ method parse_test_result {
   );
   $self->_eol;
   TAP::Spec::TestResult->new(%tmp);
-}
-
-method parse_junk_line {
-  my $text = $self->expect(qr/[^\n]*/);
-  $self->_eol;
-  TAP::Spec::JunkLine->new(text => $text);
 }
 
 # Status          = "ok" / "not ok"       ; Whether the test succeeded or failed

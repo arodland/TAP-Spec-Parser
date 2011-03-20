@@ -1,170 +1,380 @@
 package TAP::Spec::Parser;
 # ABSTRACT: Reference implementation of the TAP specification
-use strict;
-use warnings;
+use Mouse;
+use Method::Signatures::Simple;
+use Try::Tiny;
+
+use MouseX::Foreign 'Parser::MGC';
+
+use Devel::TraceCalls { Package => ['TAP::Spec::Parser', 'Parser::MGC'] };
 
 use TAP::Spec::TestSet ();
 
-my $tap_grammar = do {
-use Regexp::Grammars 1.008;
+# Tell MGC never to skip whitespace without being told.
+sub pattern_ws {
+  qr/(?!)/
+}
 
-qr~
+# API adapters to MGC
+method parse_from_string ($class: $string) {
+  $class->new->from_string($string);
+}
+
+method parse_from_handle ($class: $handle) {
+  $class->new->from_file($handle);
+}
+
+# Weird helper stuff
+method maybe_attr ($hash, $attr, $code) {
+  my $ret = $self->maybe($code);
+  if (defined $ret) {
+    $hash->{$attr} = $ret;
+  }
+}
+
+method seq_of ($code) {
+  my @ret;
+
+  my $done;
+
+  while (! $self->at_eos && !$done) {
+    try {
+      push @ret, $code->($self);
+    } catch {
+      if ($_->isa('Parser::MGC::Failure')) {
+        $done = 1;
+      } else {
+        die $_;
+      }
+    }
+  }
+
+  return \@ret;
+}
+
+sub lookahead
+{
+  my $self = shift;
+  my ( $code ) = @_;
+
+  my $pos = pos $self->{str};
+
+  my $success = eval { $code->( $self ); 1 };
+  my $e = $@;
+
+  pos $self->{str} = $pos;
+
+  if (!$success) {
+    die $e if not eval { $e->isa( "Parser::MGC::Failure" ) };
+  }
+
+  return $success;
+}
+
+method junk_until(@code) {
+  $self->seq_of(
+    sub {
+      for my $code (@code) {
+        $self->lookahead($code) and $self->fail;
+      }
+      $self->parse_junk_line;
+    }
+  );
+}
+
+method maybe_attr_junk_until($hash, $attr, @code) {
+  $self->maybe_attr($hash, $attr,
+    sub {
+      $self->junk_until(@code);
+    }
+  );
+}
+
+### Below is grammar
+
 # Main production
-<testset>
-
-# Definitions from first grammar section
+method parse {
+  $self->parse_testset;
+}
 
 # Testset         = Header (Plan Body / Body Plan) Footer
-<objtoken: TAP::Spec::TestSet=testset> 
-  <header> (?: <plan> <body> | <body> <plan> ) <footer>
+method parse_testset {
+  my %tmp;
+  $tmp{header} = $self->parse_header;
+  $self->any_of(
+    sub {
+      $tmp{plan} = $self->parse_plan;
+      $tmp{body} = $self->parse_body;
+    },
+    sub {
+      $tmp{body} = $self->parse_body;
+      $tmp{plan} = $self->parse_plan;
+    }
+  );
+  $tmp{footer} = $self->parse_footer;
+  TAP::Spec::TestSet->new(%tmp);
+}
 
 # Header          = [Comments] [Version]
-<objtoken: TAP::Spec::Header=header> 
-  <[leading_junk=junk_line]>*?
-  <comments>? <version>?
-  <[trailing_junk=junk_line]>*?
+method parse_header {
+  my %tmp;
+  $self->maybe_attr_junk_until(\%tmp, 'leading_junk',
+    sub { $self->parse_comment },
+    sub { $self->parse_version },
+    sub { $self->parse_tap_line },
+  );
+
+  $self->maybe_attr(\%tmp, 'comments',
+    sub { $self->parse_comments }
+  );
+  $self->maybe_attr_junk_until(\%tmp, 'junk_before_version',
+    sub { $self->parse_version },
+    sub { $self->parse_tap_line },
+  );
+  $self->maybe_attr(\%tmp, 'version',
+    sub { $self->parse_version }
+  );
+  $self->maybe_attr_junk_until(\%tmp, 'trailing_junk',
+    sub { $self->parse_comment },
+    sub { $self->parse_tap_line },
+  );
+  TAP::Spec::Header->new(%tmp);
+}
 
 # Footer          = [Comments]
-<objtoken: TAP::Spec::Footer=footer> 
-  <[leading_junk=junk_line]>*?
-  <comments>?
-  <[trailing_junk=junk_line]>*?
+method parse_footer {
+  my %tmp;
+  $self->maybe_attr_junk_until(\%tmp, 'leading_junk',
+    sub { $self->parse_comment },
+  );
+  $self->maybe_attr(\%tmp, 'comments',
+    sub { $self->parse_comments }
+  );
+  $self->maybe_attr_junk_until(\%tmp, 'trailing_junk',
+    # nothing
+  );
+  TAP::Spec::Footer->new(%tmp);
+}
 
 # Body            = *(Comment / TAP-Line)
-<objtoken: TAP::Spec::Body=body> 
-  (?: <[lines=comment]> | <[lines=tap_line]> | <[lines=junk_line]> )*
+method parse_body {
+  my $lines = $self->seq_of(
+    sub {
+      $self->any_of(
+        sub { $self->parse_comment },
+        sub { $self->parse_tap_line },
+        sub {
+          $self->lookahead(sub { $self->parse_plan }) and $self->fail;
+          $self->parse_junk_line;
+        },
+      );
+    }
+  );
+  TAP::Spec::Body->new(lines => $lines);
+}
 
-# TAP-Line        = Test-Result / Bail-Out
-<token: tap_line> 
-  <MATCH=test_result>
-| <MATCH=bail_out>
+# TAP-Line        = Test-Result / Bail-Out 
+method parse_tap_line {
+  $self->any_of(
+    sub { $self->parse_test_result },
+    sub { $self->parse_bail_out },
+  );
+}
 
 # Version         = "TAP version" SP Version-Number EOL ; ie. "TAP version 13"
-<objtoken: TAP::Spec::Version=version> 
-  (?i:TAP <.sp> version) <.sp> <version_number> <.eol>
+method parse_version {
+  $self->expect(qr/TAP version /i);
+  my $verno = $self->parse_version_number;
+  $self->_eol;
+  TAP::Spec::Version->new(version_number => $verno);
+}
 
 # Version-Number  = Positive-Integer
-<token: version_number> 
-  <MATCH=positive_integer>
+method parse_version_number {
+  $self->parse_positive_integer;
+}
 
 # Plan            = ( Plan-Simple / Plan-Todo / Plan-Skip-All ) EOL
-<token: plan> 
-  (?: <MATCH=plan_simple> | <MATCH=plan_todo> | <MATCH=plan_skip_all> ) <.eol>
+method parse_plan {
+  my $plan = $self->any_of(
+    sub { $self->parse_plan_simple },
+    sub { $self->parse_plan_todo },
+    sub { $self->parse_plan_skip_all },
+  );
+  $self->_eol;
+  return $plan;
+}
 
 # Plan-Simple     = "1.." Number-Of-Tests
-<objtoken: TAP::Spec::Plan::Simple=plan_simple>
-  1.. <number_of_tests>
+method parse_plan_simple {
+  $self->expect('1..');
+  TAP::Spec::Plan::Simple->new(number_of_tests => $self->parse_number_of_tests);
+}
 
 # Plan-Todo       = Plan-Simple "todo" 1*(SP Test-Number) ";"  ; Obsolete
-<objtoken: TAP::Spec::Plan::Todo=plan_todo>
-  <plan_simple> (?i:todo) (?: <.sp> <[skipped_tests=test_number]> )+ ;
-  (?{ 
-    $MATCH{number_of_tests} = $MATCH{plan_simple}{number_of_tests};
-    delete $MATCH{plan_simple};
-  })
+method parse_plan_todo {
+  my $plan_simple = $self->parse_plan_simple;
+  $self->expect(qr/todo/i);
+  my $skipped_tests = $self->seq_of(
+    sub {
+      $self->_sp;
+      $self->parse_test_number;
+    }
+  );
+  TAP::Spec::Plan::Todo->new(
+    number_of_tests => $plan_simple->number_of_tests,
+    skipped_tests => $skipped_tests,
+  );
+}
 
 # Plan-Skip-All   = "1..0" SP "skip" SP Reason
-<objtoken: TAP::Spec::Plan::SkipAll=plan_skip_all>
-  1..0 <.sp> (?i:skip) <.sp> <reason>
+method parse_plan_skip_all {
+  $self->expect('1..0');
+  $self->_sp;
+  $self->expect(qr/skip/i);
+  $self->_sp;
+  TAP::Spec::Plan::SkipAll->new(
+    reason => $self->parse_reason,
+  );
+}
 
 # Reason          = String
-<token: reason>
-  <MATCH=string>
+method parse_reason {
+  $self->parse_string;
+}
 
 # Number-Of-Tests = 1*DIGIT               ; The number of tests contained in this stream
-<token: number_of_tests>
-  \d+
+method parse_number_of_tests {
+  $self->expect(qr/\d+/);
+}
 
 # Test-Number     = Positive-Integer      ; The sequence of a test result
-<token: test_number>
-  <MATCH=positive_integer>
+method parse_test_number {
+  $self->parse_positive_integer;
+}
 
-# Test-Result     = Status [SP Test-Number] [SP Description]
+# Test-Result     = Status [SP Test-Number] [SP Description]                                                                                                  
 #                    [SP "#" SP Directive [SP Reason]] EOL
-<objtoken: TAP::Spec::TestResult=test_result>
-  <status> (?: <.sp> <number=test_number> )? (?: <.sp> <description> )?
-  (?: 
-    <.sp> \# <.sp> <directive> 
-    (?: <.sp> <reason>)? 
-  )? <.eol>
+method parse_test_result {
+  my %tmp;
+  $tmp{status} = $self->parse_status;
+  $self->maybe_attr(\%tmp, 'number',
+    sub {
+      $self->_sp;
+      $self->parse_test_number;
+    }
+  );
+  $self->maybe_attr(\%tmp, 'description',
+    sub {
+      $self->_sp;
+      $self->parse_description;
+    }
+  );
+  $self->maybe_attr(\%tmp, 'directive',
+    sub {
+      $self->_sp;
+      $self->expect('#');
+      $self->_sp;
+      my $directive = $self->parse_directive;
+      $tmp{reason} = $self->maybe(
+        sub {
+          $self->_sp;
+          $self->parse_reason;
+        }
+      );
+      return $directive;
+    }
+  );
+  $self->_eol;
+  TAP::Spec::TestResult->new(%tmp);
+}
 
-<objtoken: TAP::Spec::JunkLine=junk_line>
-  <text=(.*?)> <.eol>
+method parse_junk_line {
+  my $text = $self->expect(qr/[^\n]*/);
+  $self->_eol;
+  TAP::Spec::JunkLine->new(text => $text);
+}
 
 # Status          = "ok" / "not ok"       ; Whether the test succeeded or failed
-<token: status>
-  (?i:ok) <MATCH=(?{ "ok" })>
-| (?i:not\ ok) <MATCH=(?{ "not ok" })>
+method parse_status {
+  $self->any_of(
+    sub { $self->expect(qr/ok/i); return "ok" },
+    sub { $self->expect(qr/not ok/i); return "not ok" },
+  );
+}
 
 # Description     = Safe-String           ; A description of this test.
-<token: description>
-  <MATCH=safe_string>
+method parse_description {
+  $self->parse_safe_string;
+}
 
 # Directive       = "SKIP" / "TODO"
-<token: directive>
-  (?i:SKIP) <MATCH=(?{ "SKIP" })>
-| (?i:TODO) <MATCH=(?{ "TODO" })>
+method parse_directive {
+  $self->any_of(
+    sub { $self->expect(qr/SKIP/i); return "SKIP" },
+    sub { $self->expect(qr/TODO/i); return "TODO" },
+  );
+}
 
 # Bail-Out        = "Bail out!" [SP Reason] EOL
-<objtoken: TAP::Spec::BailOut=bail_out>
-  (?i:Bail out!) (?: <.sp> <reason>)? <.eol>
+method parse_bail_out {
+  $self->expect(qr/Bail out!/i);
+  my $reason = $self->maybe(
+    sub {
+      $self->_sp;
+      $self->parse_reason;
+    }
+  );
+  $self->_eol;
+  TAP::Spec::BailOut->new( reason => $reason );
+}
 
 # Comment         = "#" String EOL
-<objtoken: TAP::Spec::Comment=comment>
-  \# <text=string> <.eol>
+method parse_comment {
+  $self->expect("#");
+  my $text = $self->parse_string;
+  $self->_eol;
+  TAP::Spec::Comment->new( text => $text );
+}
 
 # Comments        = 1*Comment
-<token: comments>
-  <[MATCH=comment]>+
+method parse_comments {
+  $self->seq_of(
+    sub { $self->parse_comment }
+  );
+}
 
 # EOL              = LF / CRLF             ; Specific to the system producing the stream
-<token: eol>
-  \n
-| \r\n
+method _eol {
+  $self->expect(qr/\n|\r\n/);
+}
 
 # Safe-String      = 1*(%x01-09 %x0B-0C %x0E-22 %x24-FF)  ; UTF8 without EOL or "#"
-<token: safe_string>
-  [\x01-\x09\x0b-\x0c\x0e-\x22\x24-\xff]+
+method parse_safe_string {
+  $self->expect(qr/[\x01-\x09\x0b-\x0c\x0e-\x22\x24-\xff]+/);
+}
 
 # String           = 1*(Safe-String / "#")                ; UTF8 without EOL
-<token: string>
-  (?: <.safe_string> | \# )+
+method parse_string {
+  my $bits = $self->seq_of(
+    sub {
+      $self->any_of(
+        sub { $self->parse_safe_string },
+        sub { $self->expect('#') },
+      );
+    }
+  );
+  join '', @$bits;
+}
 
 # Positive-Integer = ("1" / "2" / "3" / "4" / "5" / "6" / "7" / "8" / "9") *DIGIT
-<token: positive_integer>
-  [1-9][0-9]*
-
-# Because of BNF "SP" and because backslash-space in regex is ugly :)
-<token: sp>
-  \x20
-~x;
-};
-
-=method $parser->parse_from_string($input)
-
-Return a parse the given string, and return a L<TAP::Spec::TestSet> if it can
-be parsed as TAP, or C<undef> otherwise.
-
-=cut
-
-sub parse_from_string {
-  my ($self, $input) = @_;
-  $input =~ /$tap_grammar/ or return;
-  return $/{testset};
+method parse_positive_integer {
+  $self->expect(qr/[1-9][0-9]*/);
 }
 
-=method $parser->parse_from_handle($fh)
-
-As C<parse_from_string>, but read from a filehandle instead. This isn't
-a streaming interface, just a convenience method that slurps the handle
-and calls C<parse_from_string>.
-
-=cut
-
-sub parse_from_handle {
-  my ($self, $fh) = @_;
-  my $data = do { local $/; <$fh> };
-  return $self->parse_from_string($data);
+method _sp {
+  $self->expect(' ');
 }
 
+no Mouse;
 1;

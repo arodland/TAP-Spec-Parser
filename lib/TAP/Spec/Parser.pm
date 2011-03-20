@@ -21,7 +21,9 @@ method parse_from_string ($class: $string) {
 }
 
 method parse_from_handle ($class: $handle) {
-  $class->new->from_file($handle);
+  $class->new->from_reader(sub {
+      scalar <$handle>
+    });
 }
 
 # Weird helper stuff

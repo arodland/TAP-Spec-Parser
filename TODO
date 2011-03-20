@@ -1,8 +1,6 @@
-* Fully implement skipping "junk" lines.
-  * Mostly done now, but not rigorously tested.
-* (Optionally?) remove the '' key (which stores the entire matched text) from 
-  result hashes.
-* Investigate segfaults in global destruction after parsing.
+* Check completeness of "junk" line handling.
+  * Known issue: junk lines not processed inside "Comments" blocks. Need to add
+    a parameter containing things-that-are-not-junk to parse_comments.
 * Resync with spec
   * Handle \# in test descriptions, when the spec is updated for it
   * Spaces between # and directive, and directive and reason, should be optional

@@ -122,6 +122,7 @@ method parse_header {
     sub { $self->parse_comment },
     sub { $self->parse_version },
     sub { $self->parse_tap_line },
+    sub { $self->parse_plan },
   );
 
   $self->maybe_attr(\%tmp, 'comments',
@@ -130,6 +131,7 @@ method parse_header {
   $self->maybe_attr_junk_until(\%tmp, 'junk_before_version',
     sub { $self->parse_version },
     sub { $self->parse_tap_line },
+    sub { $self->parse_plan },
   );
   $self->maybe_attr(\%tmp, 'version',
     sub { $self->parse_version }
@@ -137,6 +139,7 @@ method parse_header {
   $self->maybe_attr_junk_until(\%tmp, 'trailing_junk',
     sub { $self->parse_comment },
     sub { $self->parse_tap_line },
+    sub { $self->parse_plan },
   );
   TAP::Spec::Header->new(%tmp);
 }

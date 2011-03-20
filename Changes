@@ -1,4 +1,6 @@
 {{$NEXT}}
+  * Change to a new parser using Parser::MGC.
+  * All other TAP::Spec::* objects remain the same.
 
 0.04      2010-09-24 03:40:46 CST6CDT
   * That was a failure. Require YAML::XS for tests instead.

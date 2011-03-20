@@ -6,7 +6,7 @@ use Try::Tiny;
 
 use MouseX::Foreign 'Parser::MGC';
 
-use Devel::TraceCalls { Package => ['TAP::Spec::Parser', 'Parser::MGC'] };
+#use Devel::TraceCalls { Package => ['TAP::Spec::Parser', 'Parser::MGC'] };
 
 use TAP::Spec::TestSet ();
 

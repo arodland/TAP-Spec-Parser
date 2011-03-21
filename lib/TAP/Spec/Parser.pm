@@ -3,8 +3,8 @@ package TAP::Spec::Parser;
 use Mouse;
 use Method::Signatures::Simple;
 use Try::Tiny;
-
-use MouseX::Foreign 'Parser::MGC';
+use Parser::MGC 0.07 ();
+extends 'Parser::MGC';
 
 #use Devel::TraceCalls { Package => ['TAP::Spec::Parser', 'Parser::MGC'] };
 

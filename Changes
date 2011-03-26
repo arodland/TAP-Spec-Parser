@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.06      2011-03-25 21:25:51 CST6CDT
   * Fix a missing prerequisite.
   * Remove dependency on MouseX::Foreign
   * Improved documentation.

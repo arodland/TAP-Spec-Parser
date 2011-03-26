@@ -429,4 +429,12 @@ people might find it useful); instead it's meant as a running embodiment of the
 TAP grammar in the draft standard, allowing the grammar to be comprehensively
 tested.
 
+=head1 SEE ALSO
+
+=over 4
+
+=item * L<http://testanything.org/wiki/index.php/TAP_at_IETF:_Draft_Standard>
+
+=back
+
 =cut

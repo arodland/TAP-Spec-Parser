@@ -15,15 +15,39 @@ sub pattern_ws {
   qr/(?!)/
 }
 
+=method TAP::Spec::Parser->parse_from_string($string)
+
+Attempt to parse a TAP TestSet from C<$string>. Returns a L<TAP::Spec::TestSet>
+on success, throws an exception on failure.
+
+=cut
+
 # API adapters to MGC
 method parse_from_string ($class: $string) {
   $class->new->from_string($string);
 }
 
+=method TAP::Spec::Parser->parse_from_handle($handle)
+
+Like C<parse_from_string> only accepts an opened filehandle.
+
+=cut
+
 method parse_from_handle ($class: $handle) {
   $class->new->from_reader(sub {
       scalar <$handle>
     });
+}
+
+=method TAP::Spec::Parser->parse_from_file($filename)
+
+Like C<parse_from_string> only accepts the name of a file to read a TAP
+stream from.
+
+=cut
+
+method parse_from_file ($class: $file) {
+  $class->new->from_file($file);
 }
 
 # Weird helper stuff
@@ -395,3 +419,14 @@ method _sp {
 
 no Mouse;
 1;
+__END__
+
+=head1 DESCRIPTION
+
+This module is part of the effort to turn the Test Anything Protocol into an
+IETF-approved internet standard. It's not optimized for production use (although
+people might find it useful); instead it's meant as a running embodiment of the
+TAP grammar in the draft standard, allowing the grammar to be comprehensively
+tested.
+
+=cut

@@ -1,4 +1,7 @@
 {{$NEXT}}
+  * Fix a missing prerequisite.
+  * Remove dependency on MouseX::Foreign
+  * Improved documentation.
 
 0.05      2011-03-20 12:58:42 CST6CDT
   * Change to a new parser using Parser::MGC.

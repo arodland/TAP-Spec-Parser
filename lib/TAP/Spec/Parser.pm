@@ -97,29 +97,38 @@ sub lookahead
   return $success;
 }
 
-# Match *any* line of input and save it in a junkline object.
+# This should include any rule defined below that matches a complete valid
+# line of TAP. Any line *not* matched by this rule will be consumed as junk by
+# parse_junk_line.
+method parse_nonjunk_line {
+  $self->any_of(
+    sub { $self->parse_comment },
+    sub { $self->parse_version },
+    sub { $self->parse_tap_line },
+    sub { $self->parse_plan },
+  );
+}
+
+# Match any line of input that *couldn't* be matched by another line
+# rule and save it in a JunkLine object
 method parse_junk_line {
+  $self->lookahead(sub { $self->parse_nonjunk_line }) and $self->fail;
   my $text = $self->expect(qr/[^\n]*/);
   $self->_eol;
   TAP::Spec::JunkLine->new(text => $text);
 }
 
-method junk_until(@code) {
+method maybe_junk {
   $self->seq_of(
     sub {
-      for my $code (@code) {
-        $self->lookahead($code) and $self->fail;
-      }
       $self->parse_junk_line;
     }
   );
 }
 
-method maybe_attr_junk_until($hash, $attr, @code) {
-  $self->maybe_attr($hash, $attr,
-    sub {
-      $self->junk_until(@code);
-    }
+method maybe_junk_attr($hash, $attr, @code) {
+  $self->maybe_attr($hash, $attr, 
+    sub { $self->maybe_junk }
   );
 }
 
@@ -154,52 +163,40 @@ method parse_header {
   # This is very twisty, but incidental to the way the grammar works. It's all
   # in the fact that the spec says "All unparsable lines must be ignored by TAP
   # consumers". For the sake of completeness we're not totally ignoring but
-  # capturing them, with the "parse_junk_line" method. But right here, at the
-  # very beginning of everything, there are a lot of options -- the first line
-  # of a TAP stream might be a comment, a version line, a plan, the first test
-  # result, or complete junk -- in which case the next line might be any of the
-  # above. We need to move past junk if it's present, but we need to give any
-  # valid input a change to match first, which [maybe_attr_]junk_until does
-  # using lookaheads. So at each turn we give it a list of things *not* to
-  # reject right now.
-  $self->maybe_attr_junk_until(\%tmp, 'leading_junk',
-    sub { $self->parse_comment },
-    sub { $self->parse_version },
-    sub { $self->parse_tap_line },
-    sub { $self->parse_plan },
-  );
+  # capturing them, with the "parse_junk_line" method. Which means that any
+  # time we're about to match a complete line of TAP, we need to give a junk
+  # line a chance to match first using 'maybe_junk_attr', which does a
+  # lookahead to see if the next line is valid TAP and if not, eats input
+  # line-by-line until it is.
+
+  $self->maybe_junk_attr(\%tmp, 'leading_junk');
 
   $self->maybe_attr(\%tmp, 'comments',
     sub { $self->parse_comments }
   );
-  $self->maybe_attr_junk_until(\%tmp, 'junk_before_version',
-    sub { $self->parse_version },
-    sub { $self->parse_tap_line },
-    sub { $self->parse_plan },
-  );
+  $self->maybe_junk_attr(\%tmp, 'junk_before_version');
+
   $self->maybe_attr(\%tmp, 'version',
     sub { $self->parse_version }
   );
-  $self->maybe_attr_junk_until(\%tmp, 'trailing_junk',
-    sub { $self->parse_comment },
-    sub { $self->parse_tap_line },
-    sub { $self->parse_plan },
-  );
+
+  $self->maybe_junk_attr(\%tmp, 'trailing_junk');
+
   TAP::Spec::Header->new(%tmp);
 }
 
 # Footer          = [Comments]
 method parse_footer {
   my %tmp;
-  $self->maybe_attr_junk_until(\%tmp, 'leading_junk',
-    sub { $self->parse_comment },
-  );
+
+  $self->maybe_junk_attr(\%tmp, 'leading_junk');
+
   $self->maybe_attr(\%tmp, 'comments',
     sub { $self->parse_comments }
   );
-  $self->maybe_attr_junk_until(\%tmp, 'trailing_junk',
-    # nothing - anything from here to EOF is junk.
-  );
+
+  $self->maybe_junk_attr(\%tmp, 'trailing_junk');
+
   TAP::Spec::Footer->new(%tmp);
 }
 
@@ -210,10 +207,7 @@ method parse_body {
       $self->any_of(
         sub { $self->parse_comment },
         sub { $self->parse_tap_line },
-        sub {
-          $self->lookahead(sub { $self->parse_plan }) and $self->fail;
-          $self->parse_junk_line;
-        },
+        sub { $self->parse_junk_line },
       );
     }
   );

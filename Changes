@@ -1,5 +1,10 @@
 {{$NEXT}}
 
+0.07      2011-08-17 08:26:22 America/New_York
+  * Revised "junk line" handling for more robust parsing, and to match
+    the way that Test::Harness behaves.
+    http://testanything.org/pipermail/tap-l/2011-June/000384.html
+
 0.06      2011-03-25 21:25:51 CST6CDT
   * Fix a missing prerequisite.
   * Remove dependency on MouseX::Foreign

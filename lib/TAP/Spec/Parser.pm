@@ -227,14 +227,15 @@ my %tokens = (
   'Number_Of_Tests' => [ qr/(\d+)/, sub { 0 + $1 } ],
 );
 
-method lex ($input, $expected) {
+method lex ($input, $pos, $expected) {
   my @matches;
 
   TOKEN: for my $token_name (@$expected) {
     my $token = $tokens{$token_name};
     die "Unknown token $token_name" unless defined $token;
     my $rule = $token->[0];
-    next TOKEN unless $$input =~ /^$rule/;
+    pos($$input) = $pos;
+    next TOKEN unless $$input =~ /\G$rule/;
 
     my $matched_len = $+[0] - $-[0];
     my $matched_value = undef;
@@ -274,13 +275,11 @@ method parse_line ($line) {
 #      trace_actions => 1,
   });
 
-  my $orig_line = $line;
-
-  while (length $line) {
+  for my $pos (0 .. length($line) - 1) {
     my $expected_tokens = $rec->terminals_expected;
 
     if (@$expected_tokens) {
-      my @matching_tokens = $self->lex(\$line, $expected_tokens);
+      my @matching_tokens = $self->lex(\$line, $pos, $expected_tokens);
       $rec->alternative( @$_ ) for @matching_tokens;
     }
 
@@ -289,10 +288,8 @@ method parse_line ($line) {
       1;
     };
     if (!$ok) {
-      return [ 'Junk_Line', $orig_line ];
+      return [ 'Junk_Line', $line ];
     }
-
-    substr $line, 0, 1, '';
   }
 
   $rec->end_input;

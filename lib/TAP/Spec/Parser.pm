@@ -202,29 +202,29 @@ method line_grammar {
 }
 
 my %tokens = (
-  '1..'    => [ qr/1\.\./ ],
-  '1..0'   => [ qr/1\.\.0/ ],
-  'TODO'   => [ qr/TODO/i, 'TODO' ],
-  'SKIP'   => [ qr/SKIP/i, 'SKIP' ],
-  'ok'     => [ qr/ok/i, 'ok' ],
-  'not ok' => [ qr/not ok/i, 'not ok' ],
-  'TAP version' => [ qr/TAP version/i ],
-  'Bail out!'   => [ qr/Bail out!/i ],
-  '#'  => [ qr/#/, '#' ],
-  ';'  => [ qr/;/, ';' ],
-  'SP' => [ qr/ /, ' ' ],
+  '1..'    => [ qr/\G1\.\./ ],
+  '1..0'   => [ qr/\G1\.\.0/ ],
+  'TODO'   => [ qr/\GTODO/i, 'TODO' ],
+  'SKIP'   => [ qr/\GSKIP/i, 'SKIP' ],
+  'ok'     => [ qr/\Gok/i, 'ok' ],
+  'not ok' => [ qr/\Gnot ok/i, 'not ok' ],
+  'TAP version' => [ qr/\GTAP version/i ],
+  'Bail out!'   => [ qr/\GBail out!/i ],
+  '#'  => [ qr/\G#/, '#' ],
+  ';'  => [ qr/\G;/, ';' ],
+  'SP' => [ qr/\G /, ' ' ],
   
   # EOL = LF / CRLF
-  'EOL' => [ qr/(?:\n|\r\n)/ ],
+  'EOL' => [ qr/\G(?:\n|\r\n)/ ],
   
   # Safe-String = 1*(%x01-09 %x0B-0C %x0E-22 %x24-FF)  ; UTF8 without EOL or "#"
-  'Safe_String' => [ qr/([\x01-\x09\x0b-\x0c\x0e-\x22\x24-\xff]+)/ ],
+  'Safe_String' => [ qr/\G([\x01-\x09\x0b-\x0c\x0e-\x22\x24-\xff]+)/ ],
 
   # Positive-Integer = ("1" / "2" / "3" / "4" / "5" / "6" / "7" / "8" / "9") *DIGIT
-  'Positive_Integer' => [ qr/([1-9][0-9]*)/, sub { 0 + $1 } ],
+  'Positive_Integer' => [ qr/\G([1-9][0-9]*)/, sub { 0 + $1 } ],
 
   # Number-Of-Tests = 1*DIGIT
-  'Number_Of_Tests' => [ qr/(\d+)/, sub { 0 + $1 } ],
+  'Number_Of_Tests' => [ qr/\G(\d+)/, sub { 0 + $1 } ],
 );
 
 method lex ($input, $pos, $expected) {
@@ -235,7 +235,7 @@ method lex ($input, $pos, $expected) {
     die "Unknown token $token_name" unless defined $token;
     my $rule = $token->[0];
     pos($$input) = $pos;
-    next TOKEN unless $$input =~ /\G$rule/;
+    next TOKEN unless $$input =~ $rule;
 
     my $matched_len = $+[0] - $-[0];
     my $matched_value = undef;

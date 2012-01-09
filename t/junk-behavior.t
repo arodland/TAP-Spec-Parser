@@ -19,7 +19,7 @@ EOTAP
 
 my $error = $@;
 ok !$result, "No parse for invalid TAP";
-like $error, qr/Expected/, "Parse error for invalid TAP";
+like $error, qr/expecting/, "Parse error for invalid TAP";
 
 $result = eval {
   TAP::Spec::Parser->parse_from_string(

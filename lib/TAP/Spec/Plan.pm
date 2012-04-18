@@ -1,5 +1,7 @@
 package TAP::Spec::Plan;
 # ABSTRACT: A TAP test plan
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 

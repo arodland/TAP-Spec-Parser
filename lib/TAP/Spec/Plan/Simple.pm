@@ -1,5 +1,7 @@
 package TAP::Spec::Plan::Simple;
 # ABSTRACT: A basic TAP plan with a number of tests
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 extends 'TAP::Spec::Plan';

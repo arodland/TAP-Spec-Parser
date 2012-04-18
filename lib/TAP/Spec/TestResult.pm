@@ -1,5 +1,7 @@
 package TAP::Spec::TestResult;
 # ABSTRACT: The results of a single test
+# VERSION
+# AUTHORITY
 use Mouse;
 use Mouse::Util::TypeConstraints;
 use namespace::autoclean;

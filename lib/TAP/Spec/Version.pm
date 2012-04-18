@@ -1,5 +1,7 @@
 package TAP::Spec::Version;
 # ABSTRACT: A TAP version number specification
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 

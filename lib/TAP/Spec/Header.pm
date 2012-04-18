@@ -1,5 +1,7 @@
 package TAP::Spec::Header;
 # ABSTRACT: Information at the beginning of a TAP stream
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 

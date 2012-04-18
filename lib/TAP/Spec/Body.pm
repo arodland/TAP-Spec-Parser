@@ -1,5 +1,7 @@
 package TAP::Spec::Body;
 # ABSTRACT: The main body of a TAP testset
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 

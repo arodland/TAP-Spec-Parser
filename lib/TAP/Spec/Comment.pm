@@ -1,5 +1,7 @@
 package TAP::Spec::Comment;
 # ABSTRACT: A comment in a TAP stream
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 

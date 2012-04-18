@@ -1,5 +1,7 @@
 package TAP::Spec::TestSet;
 # ABSTRACT: A set of related TAP tests
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 

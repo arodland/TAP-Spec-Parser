@@ -1,5 +1,7 @@
 package TAP::Spec::Plan::Todo;
 # ABSTRACT: A legacy TAP plan indicating TODO tests
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 extends 'TAP::Spec::Plan::Simple';

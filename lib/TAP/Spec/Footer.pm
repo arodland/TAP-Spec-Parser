@@ -1,5 +1,7 @@
 package TAP::Spec::Footer;
 # ABSTRACT: Trailing information in a TAP stream
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 

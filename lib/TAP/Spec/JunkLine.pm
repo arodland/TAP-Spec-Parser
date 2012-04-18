@@ -1,5 +1,7 @@
 package TAP::Spec::JunkLine;
 # ABSTRACT: A line of non-TAP data in a TAP stream
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 

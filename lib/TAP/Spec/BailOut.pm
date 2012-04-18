@@ -1,5 +1,7 @@
 package TAP::Spec::BailOut;
 # ABSTRACT: A TAP Bail Out! line
+# VERSION
+# AUTHORITY
 use Mouse;
 use namespace::autoclean;
 

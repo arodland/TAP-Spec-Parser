@@ -1,5 +1,7 @@
 package TAP::Spec::Parser;
 # ABSTRACT: Reference implementation of the TAP specification
+# VERSION
+# AUTHORITY
 use Mouse;
 use Method::Signatures::Simple;
 use Try::Tiny;

@@ -1,4 +1,5 @@
 {{$NEXT}}
+  * Changed parser backend from Parser::MGC to Marpa::XS.
   * Updated dist.ini.
 
 0.07      2011-08-17 08:26:22 America/New_York

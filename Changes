@@ -1,4 +1,8 @@
 {{$NEXT}}
+  * Upgrade to Marpa::R2
+  * Now with more BNF-like grammar definition.
+
+0.07_99   2012-04-18 12:35:00 America/New_York
   * Changed parser backend from Parser::MGC to Marpa::XS.
   * Updated dist.ini.
 

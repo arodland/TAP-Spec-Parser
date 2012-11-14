@@ -5,7 +5,7 @@ package TAP::Spec::Parser;
 use Mouse;
 use Method::Signatures::Simple;
 use Try::Tiny;
-use Marpa::XS;
+use Marpa::R2 2.025_001;
 use TAP::Spec::TestSet ();
 
 has 'exhaustive_strings' => (
@@ -79,34 +79,35 @@ method parse_from_file ($class: $file, %args) {
   $class->new_from_file($file, %args)->parse;
 }
 
-my $stream_grammar = Marpa::XS::Grammar->new({
+my $stream_grammar = Marpa::R2::Grammar->new({
   actions => 'TAP::Spec::Parser::Actions',
   start => 'Testset',
-  lhs_terminals => 0,
-  rules => [
+  rules => q{
     # Testset = Header (Plan Body / Body Plan) Footer
-    [ Testset => [ qw/ Header Plan_And_Body Footer EOF / ] ],
-    [ Plan_And_Body => [ qw/ Plan Body / ] => 'Plan_Body' ],
-    [ Plan_And_Body => [ qw/ Body Plan / ] => 'Body_Plan' ],
+    Testset ::= Header Plan_And_Body Footer EOF  action => Testset
+    Plan_And_Body ::=
+        Plan Body  action => Plan_Body
+      | Body Plan  action => Body_Plan
 
     # Header = [Comments] [Version]
-    [ Header => [ qw/ Maybe_Comments Maybe_Version / ] ],
-    [ Maybe_Comments => [ 'Comments' ] => 'subrule1' ],
-    [ Maybe_Comments => [ ] ],
-    [ Maybe_Version => [ 'Version' ] => 'subrule1' ],
-    [ Maybe_Version => [ ] ],
+    Header ::= Maybe_Comments Maybe_Version  action => Header
+    Maybe_Comments ::= Comments  action => subrule1
+    Maybe_Comments ::= action => undef
+    Maybe_Version ::= Version  action => subrule1
+    Maybe_Version ::= action => undef
 
     # Footer = [Comments]
-    [ Footer => [ qw/ Maybe_Comments / ] ],
+    Footer ::= Maybe_Comments  action => Footer
 
     # Body = *(Comment / TAP-Line)
-    { lhs => 'Body', rhs => [ 'Body_Line' ], min => 0 },
-    [ 'Body_Line' => [ 'Comment'  ] => 'subrule1' ],
-    [ 'Body_Line' => [ 'TAP_Line' ] => 'subrule1' ],
+    Body ::= Body_Line*  action => Body
+    Body_Line ::=
+        Comment  action => subrule1
+      | TAP_Line  action => subrule1
 
     # Comments = 1*Comment
-    { lhs => 'Comments', rhs => [ 'Comment' ], min => 1 },
-  ],
+    Comments ::= Comment+  action => Comments
+  },
 });
 $stream_grammar->precompute;
 
@@ -114,88 +115,93 @@ method stream_grammar {
   $stream_grammar
 }
 
-my $line_grammar = Marpa::XS::Grammar->new({
+my $line_grammar = Marpa::R2::Grammar->new({
   actions => 'TAP::Spec::Parser::Actions',
   start => 'Valid_Line',
-  lhs_terminals => 0,
-  rules => [
+  rules => q{
     # "Any output line that is not a version, a plan, a test line, a diagnostic
     # or a bail out is considered an 'unknown' line."
     # Valid_Line is a meta-rule that matches any valid line of TAP (a rule that
     # starts at the beginning of a line and matches EOL at the end). Any line of
     # input that doesn't match "Valid_Line" is discarded as a "junk line", so
     # keep this up to date.
-    [ Valid_Line => [ 'TAP_Line' ] => 'tokenize_TAP_Line' ],
-    [ Valid_Line => [ 'Version'  ] => 'tokenize_Version' ],
-    [ Valid_Line => [ 'Plan'     ] => 'tokenize_Plan' ],
-    [ Valid_Line => [ 'Comment'  ] => 'tokenize_Comment' ],
+    Valid_Line ::=
+        TAP_Line  action => tokenize_TAP_Line
+      | Version   action => tokenize_Version
+      | Plan      action => tokenize_Plan
+      | Comment   action => tokenize_Comment
 
     # Tap-Line = Test-Result / Bail-Out
-    [ TAP_Line => [ 'Test_Result' ] => 'subrule1' ],
-    [ TAP_Line => [ 'Bail_Out'    ] => 'subrule1' ],
+    TAP_Line ::=
+        Test_Result  action => subrule1
+      | Bail_Out     action => subrule1
 
     # Version = "TAP version" SP Version-Number EOL ; ie. "TAP version 13"
-    [ Version => [ 'TAP version', qw/SP Version_Number EOL/ ] ],
+    Version ::= TAP_version SP Version_Number EOL  action => Version
 
     # Version-Number = Positive-Integer
-    [ Version_Number => [ 'Positive_Integer' ] => 'subrule1' ],
+    Version_Number ::= Positive_Integer  action => subrule1
 
     # Plan = ( Plan-Simple / Plan-Todo / Plan-Skip-All ) EOL
-    [ Plan => [ qw/Plan_Simple   EOL/ ] => 'subrule1' ],
-    [ Plan => [ qw/Plan_Todo     EOL/ ] => 'subrule1' ],
-    [ Plan => [ qw/Plan_Skip_All EOL/ ] => 'subrule1' ],
+    Plan ::=
+        Plan_Simple   EOL  action => subrule1
+      | Plan_Todo     EOL  action => subrule1
+      | Plan_Skip_All EOL  action => subrule1
 
     # Plan-Simple = "1.." Number-Of-Tests
-    [ Plan_Simple => [ 'Plan_Simple_Body' ] ],
-    [ Plan_Simple_Body => [ qw/1.. Number_Of_Tests/ ] => 'subrule2' ], # Capture no. of tests
+    Plan_Simple ::= Plan_Simple_Body  action => Plan_Simple
+    Plan_Simple_Body ::= ONE_DOT_DOT Number_Of_Tests  action => subrule2 # Capture no. of tests
 
     # Plan-Todo = Plan-Simple "todo" 1*(SP Test-Number) ";" ; obsolete
-    [ Plan_Todo => [ qw/Plan_Simple_Body SP todo SP Test_Numbers ;/ ] ],
-    { lhs => 'Test_Numbers', rhs => [ 'Test_Number' ], min => 1, proper => 1, separator => 'SP' },
+    Plan_Todo ::= Plan_Simple_Body SP todo SP Test_Numbers SEMI  action => Plan_Todo
+    Test_Numbers ::= Test_Number+  separator => SP proper => 1 action => Test_Numbers
 
     # Plan-Skip-All = "1..0" SP "skip" SP Reason
-    [ Plan_Skip_All => [ qw/1..0 SP skip SP Reason/ ] ],
+    Plan_Skip_All ::= ONE_DOT_DOT_0 SP skip SP Reason  action => Plan_Skip_All
 
     # Reason = String
-    [ Reason => [ 'String' ] => 'subrule1' ],
+    Reason ::= String  action => subrule1
 
     # Test-Number = Positive-Integer
-    [ Test_Number => [ 'Positive_Integer' ] => 'subrule1' ],
+    Test_Number ::= Positive_Integer  action => subrule1
 
     # Test-Result = Status [SP Test-Number] [SP Description]
     #               [SP "#" SP Directive [SP Reason]] EOL
-    [ Test_Result => [ qw/Status Maybe_Test_Number Maybe_Description Maybe_Directive_Reason EOL/ ] ],
-    [ Maybe_Test_Number => [ qw/SP Test_Number/ ] => 'subrule2' ],
-    [ Maybe_Test_Number => [ ] ],
-    [ Maybe_Description => [ qw/SP Description/ ] => 'subrule2' ],
-    [ Maybe_Description => [ ] ],
-    [ Maybe_Directive_Reason => [ 'SP', '#', 'SP', qw/Directive Maybe_Reason/ ] ],
-    [ Maybe_Directive_Reason => [ ] ],
-    [ Maybe_Reason => [ qw/SP Reason/ ] => 'subrule2' ],
-    [ Maybe_Reason => [ ] ],
+    Test_Result ::= Status Maybe_Test_Number Maybe_Description Maybe_Directive_Reason EOL  action => Test_Result
+    Maybe_Test_Number ::= SP Test_Number  action => subrule2
+    Maybe_Test_Number ::= action => undef
+    Maybe_Description ::= SP Description  action => subrule2
+    Maybe_Description ::= action => undef
+    Maybe_Directive_Reason ::= SP HASH SP Directive Maybe_Reason   action => Maybe_Directive_Reason
+    Maybe_Directive_Reason ::= action => undef
+    Maybe_Reason ::= SP Reason  action => subrule2
+    Maybe_Reason ::= action => undef
 
     # Status = "ok" / "not ok"
-    [ Status => [ 'ok'     ] => 'subrule1' ],
-    [ Status => [ 'not ok' ] => 'subrule1' ],
+    Status ::=
+        ok      action => subrule1
+      | not_ok  action => subrule1
 
     # Description = Safe-String
-    [ Description => [ 'Safe_String' ] => 'subrule1' ],
+    Description ::= Safe_String  action => subrule1
 
     # Directive = "SKIP" / "TODO"
-    [ Directive => [ 'SKIP' ] => 'subrule1' ],
-    [ Directive => [ 'TODO' ] => 'subrule1' ],
+    Directive ::=
+        SKIP  action => subrule1
+      | TODO  action => subrule1
 
     # Bail-Out = "Bail out!" [SP Reason] EOL
-    [ Bail_Out => [ 'Bail out!', qw/Maybe_Reason EOL/ ] ],
+    Bail_Out ::= Bail_out Maybe_Reason EOL  action => Bail_Out
 
     # Comment = "#" String EOL
-    [ Comment => [ '#', qw/String EOL/ ] ],
+    Comment ::= HASH String EOL  action => Comment
 
     # String = 1*(Safe-String / "#")
-    { lhs => 'String', rhs => ['String_Part'], min => 1 },
-    [ String_Part => [ 'Safe_String' ] => 'subrule1' ],
-    [ String_Part => [ '#' ] => 'subrule1' ],
-  ],
+    String ::= String_Part+  action => String
+    String_Part ::=
+        Safe_String  action => subrule1
+      | HASH         action => subrule1
+  },
 });
 $line_grammar->precompute;
 
@@ -204,17 +210,17 @@ method line_grammar {
 }
 
 my %tokens = (
-  '1..'    => [ qr/\G1\.\./ ],
-  '1..0'   => [ qr/\G1\.\.0/ ],
-  'TODO'   => [ qr/\GTODO/i, 'TODO' ],
-  'SKIP'   => [ qr/\GSKIP/i, 'SKIP' ],
-  'ok'     => [ qr/\Gok/i, 'ok' ],
-  'not ok' => [ qr/\Gnot ok/i, 'not ok' ],
-  'TAP version' => [ qr/\GTAP version/i ],
-  'Bail out!'   => [ qr/\GBail out!/i ],
-  '#'  => [ qr/\G#/, '#' ],
-  ';'  => [ qr/\G;/, ';' ],
-  'SP' => [ qr/\G /, ' ' ],
+  'ONE_DOT_DOT'   => [ qr/\G1\.\./ ],
+  'ONE_DOT_DOT_0' => [ qr/\G1\.\.0/ ],
+  'TODO'          => [ qr/\GTODO/i, 'TODO' ],
+  'SKIP'          => [ qr/\GSKIP/i, 'SKIP' ],
+  'ok'            => [ qr/\Gok/i, 'ok' ],
+  'not_ok'        => [ qr/\Gnot ok/i, 'not ok' ],
+  'TAP_version'   => [ qr/\GTAP version/i ],
+  'Bail_out'      => [ qr/\GBail out!/i ],
+  'HASH'          => [ qr/\G#/, '#' ],
+  'SEMI'          => [ qr/\G;/, ';' ],
+  'SP'            => [ qr/\G /, ' ' ],
   
   # EOL = LF / CRLF
   'EOL' => [ qr/\G(?:\n|\r\n)/ ],
@@ -252,15 +258,17 @@ method lex ($input, $pos, $expected) {
       $matched_value = $1;
     }
 
-    push @matches, [ $token_name, $matched_value, $matched_len ];
+    push @matches, [ $token_name, \$matched_value, $matched_len ];
 
     if ($token_name eq 'Safe_String') {
       if ($self->exhaustive_strings) {
         for my $len (reverse 1 .. $matched_len - 1) {
-          push @matches, [ $token_name, substr($matched_value, 0, $len), $len ];
+          my $value = substr($matched_value, 0, $len);
+          push @matches, [ $token_name, \$value, $len ];
         }
       } elsif ($matched_value =~ /(.*) $/) {
-        push @matches, [ $token_name, $1, $matched_len - 1 ];
+        my $value = $1;
+        push @matches, [ $token_name, \$value, $matched_len - 1 ];
       }
     }
   }
@@ -269,7 +277,7 @@ method lex ($input, $pos, $expected) {
 }
 
 method parse_line ($line) {
-  my $rec = Marpa::XS::Recognizer->new({
+  my $rec = Marpa::R2::Recognizer->new({
       grammar => $self->line_grammar,
       ranking_method => 'rule',
 #      trace_terminals => 2,
@@ -300,11 +308,12 @@ method parse_line ($line) {
 }
 
 method parse {
-  my $rec = Marpa::XS::Recognizer->new({
+  my $rec = Marpa::R2::Recognizer->new({
       grammar => $self->stream_grammar,
       ranking_method => 'rule',
 #      trace_terminals => 2,
 #      trace_values => 1,
+#      trace_actions => 1,
   });
 
   my $reader = $self->reader;
@@ -313,7 +322,7 @@ method parse {
 #    print "Expecting: ", join(" ", @{ $rec->terminals_expected }), "\n";
     my $line_token = $self->parse_line($line);
     next if $line_token->[0] eq 'Junk_Line'; # XXX do something cooler
-    unless ($rec->read(@$line_token)) {
+    unless (defined $rec->read(@$line_token)) {
       my $expected = $rec->terminals_expected;
       die "Parse error, expecting [@$expected], got $line_token->[0]";
     }
@@ -465,6 +474,10 @@ sub String {
   shift;
   my @parts = @_;
   return join "", @parts;
+}
+
+sub undef {
+  undef
 }
 
 1;

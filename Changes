@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.10      2012-11-14 00:27:12 EST5EDT
   * Release Marpa-based version; it's now decisively better
     than the MGC parser.
 

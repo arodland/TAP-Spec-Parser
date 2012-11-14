@@ -3,7 +3,7 @@ package TAP::Spec::Parser;
 use Mouse;
 use Method::Signatures::Simple;
 use Try::Tiny;
-use Marpa::R2;
+use Marpa::R2 2.025_001;
 use TAP::Spec::TestSet ();
 
 has 'exhaustive_strings' => (
